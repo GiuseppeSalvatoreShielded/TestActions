@@ -1,5 +1,5 @@
-name: "Xray Upload"
-description: "Authenticate to Xray Cloud and upload test results (JSON or JUnit)"
+name: "Upload Test Report to XRay"
+description: "Authenticate to Xray Cloud and upload Xray test results"
 branding:
   color: blue
   icon: upload-cloud
@@ -11,26 +11,19 @@ inputs:
     default: "./reports/xray/test-results.json"
   xray_base_url:
     description: "Xray Cloud base URL"
-    required: false
+    required: true
     default: "https://eu.xray.cloud.getxray.app/api/v2"
-  format:
-    description: "Results format: json or junit"
-    required: false
-    default: "json"
-  projectKey:
-    description: "Jira project key (only for junit import)"
-    required: false
   testExecKey:
-    description: "Existing Test Execution issue key (optional, junit only)"
+    description: "Existing Test Execution issue key"
     required: false
   testPlanKey:
     description: "Existing Test Plan issue key (optional; required if no testExecKey)"
     required: false
   xray_client_id:
-    description: "Xray Cloud client id (pass a secret)"
+    description: "Xray Cloud Client ID (secret that should be available at org level)"
     required: true
   xray_client_secret:
-    description: "Xray Cloud client secret (pass a secret)"
+    description: "Xray Cloud Client Secret (secret that should be available at org level)"
     required: true
 
 outputs:
@@ -153,4 +146,3 @@ runs:
         EXECUTION_ID=$(echo "$RESPONSE" | grep -o '"key":"[^"]*"' | sed 's/"key":"\([^"]*\)"/\1/') || true
         echo "$EXECUTION_ID" > xray_id.txt
         echo "execution_id=$EXECUTION_ID" >> "$GITHUB_OUTPUT"
-
