@@ -13,12 +13,6 @@ inputs:
     description: "Xray Cloud base URL"
     required: true
     default: "https://eu.xray.cloud.getxray.app/api/v2"
-  testExecKey:
-    description: "Existing Test Execution issue key"
-    required: false
-  testPlanKey:
-    description: "Existing Test Plan issue key (optional; required if no testExecKey)"
-    required: false
   xray_client_id:
     description: "Xray Cloud Client ID (secret that should be available at org level)"
     required: true
@@ -51,11 +45,7 @@ runs:
         XRAY_CLIENT_ID: ${{ inputs.xray_client_id }}
         XRAY_CLIENT_SECRET: ${{ inputs.xray_client_secret }}
         XRAY_BASE_URL: ${{ inputs.xray_base_url }}
-        FORMAT: ${{ inputs.format }}
         FILE_PATH: ${{ inputs.test_results_path }}
-        PROJECT_KEY: ${{ inputs.projectKey }}
-        TEST_EXEC_KEY: ${{ inputs.testExecKey }}
-        TEST_PLAN_KEY: ${{ inputs.testPlanKey }}
       run: |
         set -euo pipefail
 
@@ -65,11 +55,6 @@ runs:
         fi
         if [ -z "${XRAY_CLIENT_SECRET:-}" ]; then
           echo "xray_client_secret input is required" >&2
-          exit 1
-        fi
-
-        if [ -z "${TEST_EXEC_KEY:-}" ] && [ -z "${TEST_PLAN_KEY:-}" ]; then
-          echo "At least one of testExecKey or testPlanKey must be provided" >&2
           exit 1
         fi
 
@@ -86,60 +71,13 @@ runs:
         fi
         echo "Authentication successful."
 
-        echo "Uploading test results (format=$FORMAT) from $FILE_PATH ..."
+        echo "Uploading XRay test results from $FILE_PATH ..."
 
-        if [ "${FORMAT}" = "junit" ]; then
-          IMPORT_URL="${XRAY_BASE_URL%/}/import/execution/junit"
-          QS=""
-          if [ -n "${PROJECT_KEY:-}" ]; then
-            QS="projectKey=${PROJECT_KEY}"
-          fi
-          if [ -n "${TEST_EXEC_KEY:-}" ]; then
-            if [ -n "$QS" ]; then
-              QS="$QS&"
-            fi
-            QS="${QS}testExecKey=${TEST_EXEC_KEY}"
-          fi
-          if [ -n "${TEST_PLAN_KEY:-}" ]; then
-            if [ -n "$QS" ]; then
-              QS="$QS&"
-            fi
-            QS="${QS}testPlanKey=${TEST_PLAN_KEY}"
-          fi
-          if [ -n "$QS" ]; then
-            IMPORT_URL="$IMPORT_URL?$QS"
-          fi
-          RESPONSE=$(curl -sS -X POST "$IMPORT_URL" \
-            -H "Authorization: Bearer $TOKEN" \
-            -H "Content-Type: text/xml" \
-            --data @"$FILE_PATH")
-        else
-          IMPORT_URL="${XRAY_BASE_URL%/}/import/execution"
-          if [ -n "${TEST_EXEC_KEY:-}" ] || [ -n "${TEST_PLAN_KEY:-}" ]; then
-            INFO_JSON="{"
-            SEP=""
-            if [ -n "${TEST_EXEC_KEY:-}" ]; then
-              INFO_JSON="${INFO_JSON}\"testExecutionKey\":\"${TEST_EXEC_KEY}\""
-              SEP="," 
-            fi
-            if [ -n "${TEST_PLAN_KEY:-}" ]; then
-              INFO_JSON="${INFO_JSON}${SEP}\"testPlanKey\":\"${TEST_PLAN_KEY}\""
-            fi
-            INFO_JSON="${INFO_JSON}}"
-            TMP_INFO=$(mktemp)
-            printf '%s' "$INFO_JSON" > "$TMP_INFO"
-            RESPONSE=$(curl -sS -X POST "$IMPORT_URL" \
-              -H "Authorization: Bearer $TOKEN" \
-              -H "Content-Type: multipart/form-data" \
-              -F "info=@$TMP_INFO;type=application/json" \
-              -F "results=@$FILE_PATH;type=application/json")
-          else
-            RESPONSE=$(curl -sS -X POST "$IMPORT_URL" \
-              -H "Authorization: Bearer $TOKEN" \
-              -H "Content-Type: application/json" \
-              --data @"$FILE_PATH")
-          fi
-        fi
+        IMPORT_URL="${XRAY_BASE_URL%/}/import/execution"
+        RESPONSE=$(curl -sS -X POST "$IMPORT_URL" \
+          -H "Authorization: Bearer $TOKEN" \
+          -H "Content-Type: application/json" \
+          --data @"$FILE_PATH")
 
         echo "Xray API responded with: $RESPONSE"
 
