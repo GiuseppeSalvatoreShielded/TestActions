@@ -32,9 +32,9 @@ runs:
       shell: bash
       run: |
         set -euo pipefail
-        FILE_PATH="${{ inputs.test_results_path }}"
-        if [ ! -f "$FILE_PATH" ]; then
-          echo "Error: Test results file not found at: $FILE_PATH" >&2
+        RESULT_FILE_PATH="${{ inputs.test_results_path }}"
+        if [ ! -f "$RESULT_FILE_PATH" ]; then
+          echo "Error: Test results file not found at: $RESULT_FILE_PATH" >&2
           exit 1
         fi
 
@@ -45,7 +45,7 @@ runs:
         XRAY_CLIENT_ID: ${{ inputs.xray_client_id }}
         XRAY_CLIENT_SECRET: ${{ inputs.xray_client_secret }}
         XRAY_BASE_URL: ${{ inputs.xray_base_url }}
-        FILE_PATH: ${{ inputs.test_results_path }}
+        RESULT_FILE_PATH: ${{ inputs.test_results_path }}
       run: |
         set -euo pipefail
 
@@ -71,13 +71,13 @@ runs:
         fi
         echo "Authentication successful."
 
-        echo "Uploading XRay test results from $FILE_PATH ..."
+        echo "Uploading XRay test results from $RESULT_FILE_PATH ..."
 
         IMPORT_URL="${XRAY_BASE_URL%/}/import/execution"
         RESPONSE=$(curl -sS -X POST "$IMPORT_URL" \
           -H "Authorization: Bearer $TOKEN" \
           -H "Content-Type: application/json" \
-          --data @"$FILE_PATH")
+          --data @"$RESULT_FILE_PATH")
 
         echo "Xray API responded with: $RESPONSE"
 
